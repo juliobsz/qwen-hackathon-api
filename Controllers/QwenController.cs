@@ -17,7 +17,7 @@ public class QwenController(IHttpClientFactory httpClientFactory, IConfiguration
         client.DefaultRequestHeaders.Add("Authorization", "Bearer " + config["Qwen:ApiKey"]);
         var res = await client.PostAsJsonAsync(config["Qwen:ApiUrl"] + "/chat/completions", new
             {
-                model = "qwen-flash",
+                model = config["Qwen:Model"],
                 messages = new[]
                 {
                     new
