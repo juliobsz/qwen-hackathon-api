@@ -14,6 +14,9 @@ public class Message
     [Column("content")]
     [MaxLength(2000)]
     public string Content { get; set; } = null!;
+    [Column("role")]
+    [MaxLength(50)]
+    public string Role { get; set; } = null!;
     [Column("created_at")]
     public DateTimeOffset CreatedAt { get; set; }  = DateTimeOffset.UtcNow;
 }

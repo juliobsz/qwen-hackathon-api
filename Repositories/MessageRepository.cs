@@ -6,12 +6,12 @@ namespace qwen_hackathon_api.Repositories;
 
 public class MessageRepository(ApplicationDbContext context) : IMessageRepository
 {
-    public async Task<Message?> GetMessage(int id)
+    public async Task<Message?> GetMessageAsync(int id)
     {
         return await context.Messages.FindAsync(id);
     }
 
-    public async Task<Message> AddMessage(Message message)
+    public async Task<Message> AddMessageAsync(Message message)
     {
         context.Messages.Add(message);
         await context.SaveChangesAsync();

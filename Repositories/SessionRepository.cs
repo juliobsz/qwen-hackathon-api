@@ -6,12 +6,12 @@ namespace qwen_hackathon_api.Repositories;
 
 public class SessionRepository(ApplicationDbContext context) : ISessionRepository
 {
-    public async Task<Session?> GetSession(int id)
+    public async Task<Session?> GetSessionAsync(Guid id)
     {
         return await context.Sessions.FindAsync(id);
     }
 
-    public async Task<Session> AddSession(Session session)
+    public async Task<Session> AddSessionAsync(Session session)
     {
         context.Sessions.Add(session);
         await context.SaveChangesAsync();
