@@ -1,0 +1,21 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sonata.Desktop", "src\Sonata.Desktop\Sonata.Desktop.csproj", "{F615CFD5-316F-4B4E-9A62-21B30DA0D871}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sonata.Server", "src\Sonata.Server\Sonata.Server.csproj", "{3798F12A-0B32-4942-972C-4AFFCEFBD0B1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F615CFD5-316F-4B4E-9A62-21B30DA0D871}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F615CFD5-316F-4B4E-9A62-21B30DA0D871}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F615CFD5-316F-4B4E-9A62-21B30DA0D871}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F615CFD5-316F-4B4E-9A62-21B30DA0D871}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3798F12A-0B32-4942-972C-4AFFCEFBD0B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3798F12A-0B32-4942-972C-4AFFCEFBD0B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3798F12A-0B32-4942-972C-4AFFCEFBD0B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3798F12A-0B32-4942-972C-4AFFCEFBD0B1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
