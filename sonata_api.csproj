@@ -4,7 +4,7 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>qwen_hackathon_api</RootNamespace>
+        <RootNamespace>sonata_api</RootNamespace>
     </PropertyGroup>
     
     <ItemGroup>

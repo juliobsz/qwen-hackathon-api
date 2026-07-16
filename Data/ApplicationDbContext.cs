@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace qwen_hackathon_api.Data;
+namespace sonata_api.Data;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {

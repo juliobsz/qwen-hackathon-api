@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using qwen_hackathon_api.Models;
-using qwen_hackathon_api.Repositories;
+using sonata_api.Models;
+using sonata_api.Repositories;
 
-namespace qwen_hackathon_api.Controllers;
+namespace sonata_api.Controllers;
 
 [ApiController]
 [Route("v1/")]
@@ -13,12 +13,12 @@ public class QwenController(IHttpClientFactory httpClientFactory, IConfiguration
     {
         var content = data.Content;
         var sessionId = data.SessionId ?? "";
-        if (content == null) return BadRequest();
+        if (content == null || !Guid.TryParse(sessionId, out var sessionGuid)) return BadRequest();
         
-        if (!Guid.TryParse(sessionId, out _)) sessionId = Guid.NewGuid().ToString();
-        var session = await sessionRepository.GetSessionAsync(Guid.Parse(sessionId)) ??
+        var session = await sessionRepository.GetSessionAsync(sessionGuid) ??
                       await sessionRepository.AddSessionAsync(new Session() 
                       {
+                          Id = sessionGuid,
                           StartedAt = DateTimeOffset.UtcNow,
                       });
         

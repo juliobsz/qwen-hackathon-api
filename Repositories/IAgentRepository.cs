@@ -1,6 +1,6 @@
-using qwen_hackathon_api.Models;
+using sonata_api.Models;
 
-namespace qwen_hackathon_api.Repositories;
+namespace sonata_api.Repositories;
 
 public interface ISessionRepository
 {

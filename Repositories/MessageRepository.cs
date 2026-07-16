@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using qwen_hackathon_api.Data;
-using qwen_hackathon_api.Models;
+using sonata_api.Data;
+using sonata_api.Models;
 
-namespace qwen_hackathon_api.Repositories;
+namespace sonata_api.Repositories;
 
 public class MessageRepository(ApplicationDbContext context) : IMessageRepository
 {

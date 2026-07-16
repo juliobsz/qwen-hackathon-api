@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
-namespace qwen_hackathon_api.Models;
+namespace sonata_api.Models;
 
 [Table("sessions")]
 public class Session

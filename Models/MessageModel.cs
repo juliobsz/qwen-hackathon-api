@@ -1,8 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
-namespace qwen_hackathon_api.Models;
+namespace sonata_api.Models;
 
 [Table("messages")]
 public class Message

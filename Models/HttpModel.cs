@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace qwen_hackathon_api.Models;
+namespace sonata_api.Models;
 
 public class ChatRequest
 {

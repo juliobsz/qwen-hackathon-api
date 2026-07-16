@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using qwen_hackathon_api.Data;
-using qwen_hackathon_api.Repositories;
+using sonata_api.Data;
+using sonata_api.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
