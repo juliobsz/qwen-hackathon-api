@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.13.0" />
   </ItemGroup>
 
   <ItemGroup>
