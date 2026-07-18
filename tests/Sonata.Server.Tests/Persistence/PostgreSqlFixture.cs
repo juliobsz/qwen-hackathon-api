@@ -9,7 +9,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:18.4-alpine")
         .WithDatabase("sonata_tests")
         .WithUsername("sonata")
-        .WithUsername("sonata-tests-only")
+        .WithPassword("sonata-tests-only")
         .Build();
 
     public ApplicationDbContext CreateDbContext()

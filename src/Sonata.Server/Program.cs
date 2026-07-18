@@ -3,6 +3,7 @@ using Sonata.Server.Data;
 using Sonata.Server.ModelProviders;
 using Sonata.Server.Repositories;
 using Sonata.Server.ModelProviders.Qwen;
+using Sonata.Server.Conversations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IConversationService, ConversationService>();
 
 builder.Services.AddHttpClient<IModelProvider, QwenModelProvider>();
 
