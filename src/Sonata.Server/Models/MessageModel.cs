@@ -8,14 +8,23 @@ public class Message
 {
     [Column("id")]
     public long Id { get; set; }
+    
     [Column("session_id")]
     public Guid SessionId { get; set; }
+    
+    [Column("sequence")]
+    public int Sequence {  get; set; }
+
+    public Session Session { get; set; } = null!;
+    
     [Column("content")]
     [MaxLength(2000)]
     public string Content { get; set; } = null!;
+    
     [Column("role")]
     [MaxLength(50)]
     public string Role { get; set; } = null!;
+    
     [Column("created_at")]
     public DateTimeOffset CreatedAt { get; set; }  = DateTimeOffset.UtcNow;
 }

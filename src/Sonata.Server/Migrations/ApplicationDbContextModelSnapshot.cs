@@ -47,13 +47,23 @@ namespace Sonata.Server.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("role");
 
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer")
+                        .HasColumnName("sequence");
+
                     b.Property<Guid>("SessionId")
                         .HasColumnType("uuid")
                         .HasColumnName("session_id");
 
                     b.HasKey("Id");
 
-                    b.ToTable("messages");
+                    b.HasIndex("SessionId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("messages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_messages_sequence_positive", "sequence > 0");
+                        });
                 });
 
             modelBuilder.Entity("Sonata.Server.Models.Session", b =>
@@ -74,6 +84,22 @@ namespace Sonata.Server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("sessions");
+                });
+
+            modelBuilder.Entity("Sonata.Server.Models.Message", b =>
+                {
+                    b.HasOne("Sonata.Server.Models.Session", "Session")
+                        .WithMany("Messages")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("Sonata.Server.Models.Session", b =>
+                {
+                    b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
         }

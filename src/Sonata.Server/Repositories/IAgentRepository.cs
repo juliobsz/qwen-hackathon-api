@@ -11,7 +11,7 @@ public interface ISessionRepository
 
 public interface IMessageRepository
 {
-    Task<Message?> GetMessageAsync(int id);
+    Task<Message?> GetMessageAsync(long id);
     Task<Message> AddMessageAsync(Message message);
-    Task<IEnumerable<Message>> GetMessagesBySessionId(Guid sessionId);
+    Task<IReadOnlyList<Message>> GetMessagesBySessionId(Guid sessionId);
 }
