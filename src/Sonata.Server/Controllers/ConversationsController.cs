@@ -23,7 +23,8 @@ public sealed class ConversationsController(IConversationService conversationSer
             return Ok(new
             {
                 Content = turn.AssistantMessage.Content,
-                ConversationId = turn.ConversationId
+                ConversationId = turn.ConversationId,
+                MemoryDiff = turn.MemoryDiff
             });
         }
         catch (ModelProviderException)

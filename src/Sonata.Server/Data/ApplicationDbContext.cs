@@ -10,7 +10,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<SourceNote> SourceNotes => Set<SourceNote>();
     public DbSet<Memory> Memories => Set<Memory>();
-    public DbSet<MemoryUse> MemoriesUses => Set<MemoryUse>();
+    public DbSet<MemoryUse> MemoryUses => Set<MemoryUse>();
 
       protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

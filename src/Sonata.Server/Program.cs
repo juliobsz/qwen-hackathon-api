@@ -5,6 +5,7 @@ using Sonata.Server.Repositories;
 using Sonata.Server.ModelProviders.Qwen;
 using Sonata.Server.Conversations;
 using Sonata.Server.Memories;
+using Sonata.Server.Retrieval;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,7 @@ builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<IMemoryService, MemoryService>();
+builder.Services.AddScoped<IMemorySelector, MemorySelector>();
 builder.Services.AddHttpClient<IModelProvider, QwenModelProvider>();
 
 var app = builder.Build();
