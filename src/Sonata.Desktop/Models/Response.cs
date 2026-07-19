@@ -31,3 +31,12 @@ public sealed class MemoryListResponse
     [JsonPropertyName("memories")]
     public MemoryItem[] Memories { get; set; } = [];
 }
+
+public sealed class ApiErrorResponse
+{
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
+
+    [JsonPropertyName("message")]
+    public string? Message { get; set; }
+}
