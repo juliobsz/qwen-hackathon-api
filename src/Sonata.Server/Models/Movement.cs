@@ -6,10 +6,11 @@ namespace Sonata.Server.Models;
 [Table("movements")]
 public sealed class Movement
 {
-    public static readonly Guid HackathonId = Guid.Parse("10000000-0000-0000-0000-000000000001");
-    
     [Column("id")]
     public Guid Id { get; set; } = Guid.NewGuid();
+
+    [Column("user_id")]
+    public Guid UserId { get; set; }
     
     [Column("name")]
     [MaxLength(100)]

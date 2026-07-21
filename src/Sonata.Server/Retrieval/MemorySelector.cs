@@ -7,6 +7,7 @@ namespace Sonata.Server.Retrieval;
 public sealed class MemorySelector(ApplicationDbContext context) : IMemorySelector
 {
     public async Task<IReadOnlyList<SelectedMemory>> SelectAsync(
+        Guid userId,
         Guid movementId,
         int maximumCount,
         CancellationToken cancellationToken = default)
@@ -15,8 +16,10 @@ public sealed class MemorySelector(ApplicationDbContext context) : IMemorySelect
 
         var memories = await context.Memories
             .AsNoTracking()
-            .Where(memory => memory.MovementId == movementId
-                             && memory.LifecycleState == MemoryLifecycleState.Active)
+            .Where(memory => 
+                memory.UserId == userId &&
+                memory.MovementId == movementId && 
+                memory.LifecycleState == MemoryLifecycleState.Active)
             .OrderByDescending(memory => memory.CreatedAt)
             .ThenBy(memory => memory.Id)
             .Take(maximumCount)

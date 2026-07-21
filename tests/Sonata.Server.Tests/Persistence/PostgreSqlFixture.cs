@@ -20,6 +20,13 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
         
         return new ApplicationDbContext(options);
     }
+    
+    public string ConnectionString => _container.GetConnectionString();
+
+    public ApplicationDbContext CreateContext()
+    {
+        return CreateDbContext();
+    }
 
     public async Task InitializeAsync()
     {

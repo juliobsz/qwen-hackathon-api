@@ -14,36 +14,41 @@ public sealed class MemoryService(ApplicationDbContext context) : IMemoryService
     {
         var normalizedText = command.Text.Trim();
 
-        if (normalizedText.Length == 0 || normalizedText.Length == MaximumMemoryTextLength)
-        {
+        if (normalizedText.Length == 0 || normalizedText.Length > MaximumMemoryTextLength) 
             return MemoryOperationResult.Failure(MemoryError.InvalidText, "Memory text must contain between 1 and 500 characters.");
-        }
 
-        if (!Enum.IsDefined(typeof(MemoryType), command.Type))
-        {
+        if (!Enum.IsDefined(typeof(MemoryType), command.Type)) 
             return MemoryOperationResult.Failure(MemoryError.UnsupportedType, "The selected Memory type is not supported.");
-        }
 
+        var ownsMovement = await context.Movements
+            .AsNoTracking()
+            .AnyAsync(movement =>
+                movement.Id == command.MovementId &&
+                movement.UserId == command.UserId,
+                cancellationToken);
+        if (!ownsMovement)
+            return MemoryOperationResult.Failure(MemoryError.SourceMessageOutsideMovement,
+                "The source Message does not belong to this Movement.");
+        
         var sourceMessage = await context.Messages
             .AsNoTracking()
             .Include(message => message.Conversation)
-            .SingleOrDefaultAsync(message => message.Id == command.SourceMessageId, cancellationToken);
+            .SingleOrDefaultAsync(message => 
+                message.Id == command.SourceMessageId &&
+                message.Conversation.UserId == command.UserId,
+                cancellationToken);
 
         if (sourceMessage == null)
-        {
-            return MemoryOperationResult.Failure(MemoryError.SourceMessageNotFound, "The selected source message does not exist.");
-        }
+            return MemoryOperationResult.Failure(MemoryError.SourceMessageNotFound, 
+                "The selected source message does not exist.");
 
-        if (sourceMessage.Role != "user")
-        {
+        if (sourceMessage.Role != "user") 
             return MemoryOperationResult.Failure(MemoryError.SourceMessageMustBeUser,
                 "Only a user Message can be saved as a Memory");
-        }
 
-        if (sourceMessage.Conversation.MovementId != command.MovementId)
-        {
-            return MemoryOperationResult.Failure(MemoryError.SourceMessageOutsideMovement, "The source Message does not belong to this movement.");
-        }
+        if (sourceMessage.Conversation.MovementId != command.MovementId) 
+            return MemoryOperationResult.Failure(MemoryError.SourceMessageOutsideMovement, 
+                "The source Message does not belong to this movement.");
 
         var sourceNote = new SourceNote
         {
@@ -53,6 +58,7 @@ public sealed class MemoryService(ApplicationDbContext context) : IMemoryService
 
         var memory = new Memory
         {
+            UserId = command.UserId,
             MovementId = command.MovementId,
             SourceNote = sourceNote,
             Text = normalizedText,
@@ -66,12 +72,14 @@ public sealed class MemoryService(ApplicationDbContext context) : IMemoryService
         return MemoryOperationResult.Success(ToDetails(memory));
     }
 
-    public async Task<IReadOnlyList<MemoryDetails>> ListAsync(Guid movementId,
+    public async Task<IReadOnlyList<MemoryDetails>> ListAsync(Guid userId, Guid movementId,
         CancellationToken cancellationToken = default)
     {
         return await context.Memories
             .AsNoTracking()
-            .Where(memory => memory.MovementId == movementId)
+            .Where(memory =>
+                memory.MovementId == movementId &&
+                memory.UserId == userId)
             .OrderByDescending(memory => memory.CreatedAt)
             .ThenBy(memory => memory.Id)
             .Select(memory => new MemoryDetails(
@@ -89,16 +97,16 @@ public sealed class MemoryService(ApplicationDbContext context) : IMemoryService
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<MemoryOperationResult> ArchiveAsync(Guid memoryId, CancellationToken cancellationToken = default)
+    public async Task<MemoryOperationResult> ArchiveAsync(Guid userId, Guid memoryId, CancellationToken cancellationToken = default)
     {
         var memory = await context.Memories
             .Include(item => item.SourceNote)
-            .SingleOrDefaultAsync(item => item.Id == memoryId, cancellationToken);
+            .SingleOrDefaultAsync(item => 
+                item.Id == memoryId && item.UserId == userId,
+                cancellationToken);
 
-        if (memory == null)
-        {
+        if (memory == null) 
             return MemoryOperationResult.Failure(MemoryError.MemoryNotFound, "The requested Memory does not exist.");
-        }
 
         if (memory.LifecycleState != MemoryLifecycleState.Archived)
         {

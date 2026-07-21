@@ -4,9 +4,9 @@ namespace Sonata.Server.Repositories;
 
 public interface IConversationRepository
 {
-    Task<Conversation?> GetConversationAsync(Guid id);
+    Task<Conversation?> GetConversationAsync(Guid userId, Guid id, CancellationToken cancellationToken);
     
-    Task<Conversation> AddConversationAsync(Conversation conversation);
+    Task<Conversation> AddConversationAsync(Conversation conversation, CancellationToken cancellationToken);
     
-    Task<IEnumerable<Conversation>> GetConversationsAsync();
+    Task<IReadOnlyList<Conversation>> GetConversationsAsync(Guid userId, CancellationToken cancellationToken);
 }

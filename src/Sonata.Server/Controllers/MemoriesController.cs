@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Sonata.Server.Memories;
 using Sonata.Server.Models;
+using Sonata.Server.Security;
 
 namespace Sonata.Server.Controllers;
 
@@ -8,6 +10,7 @@ namespace Sonata.Server.Controllers;
 [Route("v1")]
 public sealed class MemoriesController(IMemoryService memoryService) : ControllerBase
 {
+    [Authorize]
     [HttpPost("memories")]
     public async Task<IActionResult> CreateMemory([FromBody] CreateMemoryRequest request,
         CancellationToken cancellationToken)
@@ -26,8 +29,9 @@ public sealed class MemoriesController(IMemoryService memoryService) : Controlle
         
         var result = await memoryService.CreateAsync(
             new CreateMemoryCommand(
-                request.SourceMessageId,
+                User.RequireUserId(),
                 request.MovementId,
+                request.SourceMessageId,
                 request.Text ?? string.Empty,
                 memoryType),
             cancellationToken);
@@ -37,10 +41,11 @@ public sealed class MemoriesController(IMemoryService memoryService) : Controlle
         return StatusCode(StatusCodes.Status201Created, MemoryResponse.From(result.Memory!));
     }
 
+    [Authorize]
     [HttpGet("movements/{movementId:guid}/memories")]
     public async Task<IActionResult> ListMemories(Guid movementId, CancellationToken cancellationToken)
     {
-        var memories = await memoryService.ListAsync(movementId, cancellationToken);
+        var memories = await memoryService.ListAsync(User.RequireUserId(), movementId, cancellationToken);
 
         return Ok(new
         {
@@ -48,10 +53,11 @@ public sealed class MemoriesController(IMemoryService memoryService) : Controlle
         });
     }
 
+    [Authorize]
     [HttpPost("memories/{memoryId:guid}/archive")]
     public async Task<IActionResult> ArchiveMemory(Guid memoryId, CancellationToken cancellationToken)
     {
-        var result = await memoryService.ArchiveAsync(memoryId, cancellationToken);
+        var result = await memoryService.ArchiveAsync(User.RequireUserId(), memoryId, cancellationToken);
 
         if (!result.Succeeded) return MapFailure(result);
 

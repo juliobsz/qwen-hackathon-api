@@ -1,5 +1,6 @@
 ﻿using Sonata.Server.Conversations;
 using Sonata.Server.Data;
+using Sonata.Server.Identity;
 using Sonata.Server.ModelProviders;
 using Sonata.Server.Models;
 using Sonata.Server.Repositories;
@@ -10,44 +11,64 @@ using Sonata.Server.Tests.Persistence;
 namespace Sonata.Server.Tests.Conversations;
 
 [Collection(PostgreSqlCollection.Name)]
-public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
+public sealed class ConversationServiceTests(
+    PostgreSqlFixture fixture)
 {
     [Fact]
     [Trait("Category", "Integration")]
-    public async Task ContinuesConversationWithOrderedHistoryAndEmptyMemoryDiff()
+    public async Task
+        ContinuesConversationWithOrderedHistoryAndEmptyMemoryDiff()
     {
         await using var context = fixture.CreateDbContext();
-        var movement = await AddMovementAsync(context, "Empty retrieval");
-        var conversation = await AddConversationAsync(context, movement.Id);
+        var user = await AddUserAsync(context);
+        var movement = await AddMovementAsync(
+            context,
+            user.Id,
+            "Empty retrieval");
+        var conversation = await AddConversationAsync(
+            context,
+            user.Id,
+            movement.Id);
         var messageRepository = new MessageRepository(context);
 
         await messageRepository.AddMessageAsync(
-            NewMessage(conversation.Id, "Earlier question", "user"));
+            NewMessage(
+                conversation.Id,
+                "Earlier question",
+                "user"),
+            CancellationToken.None);
         await messageRepository.AddMessageAsync(
-            NewMessage(conversation.Id, "Earlier answer", "assistant"));
+            NewMessage(
+                conversation.Id,
+                "Earlier answer",
+                "assistant"),
+            CancellationToken.None);
 
         var provider = new ScriptedModelProvider(
             new GeneratedResponse(
                 "Current answer",
                 "assistant",
                 "provider-response-123"));
-        IConversationService service = CreateService(
+        var service = CreateService(
             context,
             messageRepository,
             provider);
 
         var turn = await service.ContinueAsync(
             new ContinueConversationCommand(
+                user.Id,
                 conversation.Id,
                 "Current question"),
             CancellationToken.None);
 
         Assert.Equal(3, turn.UserMessage.Sequence);
         Assert.Equal(4, turn.AssistantMessage.Sequence);
-        Assert.Equal("Current answer", turn.AssistantMessage.Content);
+        Assert.Equal(
+            "Current answer",
+            turn.AssistantMessage.Content);
         Assert.Empty(turn.MemoryDiff);
 
-        var receivedRequest = Assert.IsType<GenerateResponseRequest>(
+        var request = Assert.IsType<GenerateResponseRequest>(
             provider.ReceivedRequest);
         Assert.Equal(
             new[]
@@ -56,35 +77,46 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
                 "Earlier answer",
                 "Current question"
             },
-            receivedRequest.Messages.Select(message => message.Content));
+            request.Messages.Select(message => message.Content));
     }
 
     [Fact]
     [Trait("Category", "Integration")]
-    public async Task ActiveMovementMemoryIsUsedAndRecordedInMemoryDiff()
+    public async Task
+        ActiveMovementMemoryIsUsedAndRecordedInMemoryDiff()
     {
         await using var context = fixture.CreateDbContext();
-        var movement = await AddMovementAsync(context, "Active retrieval");
+        var user = await AddUserAsync(context);
+        var movement = await AddMovementAsync(
+            context,
+            user.Id,
+            "Active retrieval");
         var memory = await AddMemoryAsync(
             context,
+            user.Id,
             movement.Id,
             "The backend uses C#.",
             MemoryLifecycleState.Active,
-            new DateTimeOffset(2026, 7, 19, 1, 0, 0, TimeSpan.Zero));
-        var conversation = await AddConversationAsync(context, movement.Id);
+            new DateTimeOffset(
+                2026, 7, 19, 1, 0, 0, TimeSpan.Zero));
+        var conversation = await AddConversationAsync(
+            context,
+            user.Id,
+            movement.Id);
         var messageRepository = new MessageRepository(context);
         var provider = new ScriptedModelProvider(
             new GeneratedResponse(
                 "Keep building the C# backend.",
                 "assistant",
                 "provider-response-memory"));
-        IConversationService service = CreateService(
+        var service = CreateService(
             context,
             messageRepository,
             provider);
 
         var turn = await service.ContinueAsync(
             new ContinueConversationCommand(
+                user.Id,
                 conversation.Id,
                 "What should I build next?"),
             CancellationToken.None);
@@ -92,8 +124,12 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
         var request = Assert.IsType<GenerateResponseRequest>(
             provider.ReceivedRequest);
         Assert.Equal("system", request.Messages[0].Role);
-        Assert.Contains("untrusted data", request.Messages[0].Content);
-        Assert.Contains("The backend uses C#.", request.Messages[0].Content);
+        Assert.Contains(
+            "untrusted data",
+            request.Messages[0].Content);
+        Assert.Contains(
+            "The backend uses C#.",
+            request.Messages[0].Content);
         Assert.Equal(
             "What should I build next?",
             request.Messages[1].Content);
@@ -107,6 +143,7 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
 
         var persistedUses = await messageRepository
             .GetMemoryUsesByResponseMessageIdAsync(
+                user.Id,
                 turn.AssistantMessage.Id,
                 CancellationToken.None);
         var persistedUse = Assert.Single(persistedUses);
@@ -120,24 +157,39 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
     public async Task ArchivedMemoryIsExcluded()
     {
         await using var context = fixture.CreateDbContext();
-        var movement = await AddMovementAsync(context, "Archived exclusion");
+        var user = await AddUserAsync(context);
+        var movement = await AddMovementAsync(
+            context,
+            user.Id,
+            "Archived exclusion");
         await AddMemoryAsync(
             context,
+            user.Id,
             movement.Id,
             "Do not retrieve this archived claim.",
             MemoryLifecycleState.Archived,
-            new DateTimeOffset(2026, 7, 19, 2, 0, 0, TimeSpan.Zero));
-        var conversation = await AddConversationAsync(context, movement.Id);
+            new DateTimeOffset(
+                2026, 7, 19, 2, 0, 0, TimeSpan.Zero));
+        var conversation = await AddConversationAsync(
+            context,
+            user.Id,
+            movement.Id);
         var messageRepository = new MessageRepository(context);
         var provider = new ScriptedModelProvider(
-            new GeneratedResponse("No memory used.", "assistant", null));
-        IConversationService service = CreateService(
+            new GeneratedResponse(
+                "No memory used.",
+                "assistant",
+                null));
+        var service = CreateService(
             context,
             messageRepository,
             provider);
 
         var turn = await service.ContinueAsync(
-            new ContinueConversationCommand(conversation.Id, "Answer me"),
+            new ContinueConversationCommand(
+                user.Id,
+                conversation.Id,
+                "Answer me"),
             CancellationToken.None);
 
         var request = Assert.IsType<GenerateResponseRequest>(
@@ -148,6 +200,7 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
 
         var persistedUses = await messageRepository
             .GetMemoryUsesByResponseMessageIdAsync(
+                user.Id,
                 turn.AssistantMessage.Id,
                 CancellationToken.None);
         Assert.Empty(persistedUses);
@@ -158,31 +211,43 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
     public async Task MemoryFromAnotherMovementIsExcluded()
     {
         await using var context = fixture.CreateDbContext();
+        var user = await AddUserAsync(context);
         var currentMovement = await AddMovementAsync(
             context,
+            user.Id,
             "Current Movement");
         var otherMovement = await AddMovementAsync(
             context,
+            user.Id,
             "Other Movement");
         await AddMemoryAsync(
             context,
+            user.Id,
             otherMovement.Id,
             "This belongs to another Movement.",
             MemoryLifecycleState.Active,
-            new DateTimeOffset(2026, 7, 19, 3, 0, 0, TimeSpan.Zero));
+            new DateTimeOffset(
+                2026, 7, 19, 3, 0, 0, TimeSpan.Zero));
         var conversation = await AddConversationAsync(
             context,
+            user.Id,
             currentMovement.Id);
         var messageRepository = new MessageRepository(context);
         var provider = new ScriptedModelProvider(
-            new GeneratedResponse("Scoped answer.", "assistant", null));
-        IConversationService service = CreateService(
+            new GeneratedResponse(
+                "Scoped answer.",
+                "assistant",
+                null));
+        var service = CreateService(
             context,
             messageRepository,
             provider);
 
         var turn = await service.ContinueAsync(
-            new ContinueConversationCommand(conversation.Id, "Answer me"),
+            new ContinueConversationCommand(
+                user.Id,
+                conversation.Id,
+                "Answer me"),
             CancellationToken.None);
 
         var request = Assert.IsType<GenerateResponseRequest>(
@@ -196,30 +261,50 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
     public async Task SelectsAtMostFiveMemoriesInDeterministicOrder()
     {
         await using var context = fixture.CreateDbContext();
-        var movement = await AddMovementAsync(context, "Bounded retrieval");
+        var user = await AddUserAsync(context);
+        var movement = await AddMovementAsync(
+            context,
+            user.Id,
+            "Bounded retrieval");
 
         for (var number = 1; number <= 6; number++)
         {
             await AddMemoryAsync(
                 context,
+                user.Id,
                 movement.Id,
                 $"Memory {number}",
                 MemoryLifecycleState.Active,
                 new DateTimeOffset(
-                    2026, 7, 19, 4, number, 0, TimeSpan.Zero));
+                    2026,
+                    7,
+                    19,
+                    4,
+                    number,
+                    0,
+                    TimeSpan.Zero));
         }
 
-        var conversation = await AddConversationAsync(context, movement.Id);
+        var conversation = await AddConversationAsync(
+            context,
+            user.Id,
+            movement.Id);
         var messageRepository = new MessageRepository(context);
         var provider = new ScriptedModelProvider(
-            new GeneratedResponse("Bounded answer.", "assistant", null));
-        IConversationService service = CreateService(
+            new GeneratedResponse(
+                "Bounded answer.",
+                "assistant",
+                null));
+        var service = CreateService(
             context,
             messageRepository,
             provider);
 
         var turn = await service.ContinueAsync(
-            new ContinueConversationCommand(conversation.Id, "Use context"),
+            new ContinueConversationCommand(
+                user.Id,
+                conversation.Id,
+                "Use context"),
             CancellationToken.None);
 
         Assert.Equal(5, turn.MemoryDiff.Count);
@@ -249,17 +334,27 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
 
     [Fact]
     [Trait("Category", "Integration")]
-    public async Task ProviderFailureDoesNotPersistAssistantMessageOrMemoryUse()
+    public async Task
+        ProviderFailureDoesNotPersistAssistantMessageOrMemoryUse()
     {
         await using var context = fixture.CreateDbContext();
-        var movement = await AddMovementAsync(context, "Provider failure");
+        var user = await AddUserAsync(context);
+        var movement = await AddMovementAsync(
+            context,
+            user.Id,
+            "Provider failure");
         await AddMemoryAsync(
             context,
+            user.Id,
             movement.Id,
             "This selected Memory must not create a false use.",
             MemoryLifecycleState.Active,
-            new DateTimeOffset(2026, 7, 19, 5, 0, 0, TimeSpan.Zero));
-        var conversation = await AddConversationAsync(context, movement.Id);
+            new DateTimeOffset(
+                2026, 7, 19, 5, 0, 0, TimeSpan.Zero));
+        var conversation = await AddConversationAsync(
+            context,
+            user.Id,
+            movement.Id);
         var messageRepository = new MessageRepository(context);
         var service = CreateService(
             context,
@@ -269,12 +364,16 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
         await Assert.ThrowsAsync<ModelProviderException>(() =>
             service.ContinueAsync(
                 new ContinueConversationCommand(
+                    user.Id,
                     conversation.Id,
                     "Please answer"),
                 CancellationToken.None));
 
         var messages = await messageRepository
-            .GetMessagesByConversationId(conversation.Id);
+            .GetMessagesByConversationId(
+                user.Id,
+                conversation.Id,
+                CancellationToken.None);
 
         var onlyMessage = Assert.Single(messages);
         Assert.Equal("user", onlyMessage.Role);
@@ -287,19 +386,41 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
         IModelProvider provider)
     {
         return new ConversationService(
+            context,
             new ConversationRepository(context),
             messageRepository,
             new MemorySelector(context),
             provider);
     }
 
+    private static async Task<ApplicationUser> AddUserAsync(
+        ApplicationDbContext context)
+    {
+        var email = $"user-{Guid.NewGuid():N}@example.com";
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            NormalizedUserName = email.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        return user;
+    }
+
     private static async Task<Movement> AddMovementAsync(
         ApplicationDbContext context,
+        Guid userId,
         string name)
     {
         var movement = new Movement
         {
             Id = Guid.NewGuid(),
+            UserId = userId,
             Name = name
         };
 
@@ -310,11 +431,13 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
 
     private static async Task<Conversation> AddConversationAsync(
         ApplicationDbContext context,
+        Guid userId,
         Guid movementId)
     {
         var conversation = new Conversation
         {
             Id = Guid.NewGuid(),
+            UserId = userId,
             MovementId = movementId
         };
 
@@ -325,6 +448,7 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
 
     private static async Task<Memory> AddMemoryAsync(
         ApplicationDbContext context,
+        Guid userId,
         Guid movementId,
         string text,
         MemoryLifecycleState lifecycleState,
@@ -333,6 +457,7 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
         var sourceConversation = new Conversation
         {
             Id = Guid.NewGuid(),
+            UserId = userId,
             MovementId = movementId
         };
         var sourceMessage = new Message
@@ -349,6 +474,7 @@ public sealed class ConversationServiceTests(PostgreSqlFixture fixture)
 
         var memory = new Memory
         {
+            UserId = userId,
             MovementId = movementId,
             SourceNote = new SourceNote
             {

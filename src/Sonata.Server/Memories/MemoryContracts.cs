@@ -3,8 +3,9 @@
 namespace Sonata.Server.Memories;
 
 public sealed record CreateMemoryCommand(
-    long SourceMessageId,
+    Guid UserId,
     Guid MovementId,
+    long SourceMessageId,
     string Text,
     MemoryType Type);
 

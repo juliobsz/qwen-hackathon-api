@@ -8,6 +8,9 @@ public sealed class Memory
 {
     [Column("id")]
     public Guid Id { get; set; } = Guid.NewGuid();
+
+    [Column("user_id")]
+    public Guid UserId { get; set; }
     
     [Column("movement_id")]
     public Guid MovementId { get; set; }

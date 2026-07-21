@@ -4,18 +4,19 @@ namespace Sonata.Server.Repositories;
 
 public interface IMessageRepository
 {
-    Task<Message?> GetMessageAsync(long id);
+    Task<Message?> GetMessageAsync(Guid userId, long id, CancellationToken cancellationToken);
     
-    Task<Message> AddMessageAsync(Message message);
+    Task<Message> AddMessageAsync(Message message, CancellationToken cancellationToken);
     
     Task<Message> AddAssistantMessageWithMemoryUsesAsync(
         Message message,
         IReadOnlyList<MemoryUse> memoryUses,
         CancellationToken cancellationToken);
     
-    Task<IReadOnlyList<Message>> GetMessagesByConversationId(Guid conversationId);
+    Task<IReadOnlyList<Message>> GetMessagesByConversationId(Guid userId, Guid conversationId, CancellationToken cancellationToken);
     
     Task<IReadOnlyList<MemoryUse>> GetMemoryUsesByResponseMessageIdAsync(
+        Guid userId,
         long responseMessageId,
         CancellationToken cancellationToken);
 }

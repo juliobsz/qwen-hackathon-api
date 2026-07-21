@@ -7,6 +7,9 @@ public sealed class Conversation
 {
     [Column("id")]
     public Guid Id { get; set; } = Guid.NewGuid();
+
+    [Column("user_id")]
+    public Guid UserId { get; set; }
     
     [Column("created_at")]
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -15,7 +18,7 @@ public sealed class Conversation
     public DateTimeOffset? EndedAt { get; set; }
     
     [Column("movement_id")]
-    public Guid MovementId { get; set; } = Movement.HackathonId;
+    public Guid MovementId { get; set; }
     
     public Movement Movement { get; set; } = null!;
     

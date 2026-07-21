@@ -6,17 +6,21 @@ namespace Sonata.Server.Repositories;
 
 public class MessageRepository(ApplicationDbContext context) : IMessageRepository
 {
-    public async Task<Message?> GetMessageAsync(long id)
+    public async Task<Message?> GetMessageAsync(Guid userId, long id, CancellationToken cancellationToken)
     {
-        return await context.Messages.FindAsync(id);
+        return await context.Messages
+            .AsNoTracking()
+            .SingleOrDefaultAsync(message => 
+                message.Id == id && message.Conversation.UserId == userId, 
+                cancellationToken);
     }
 
-    public async Task<Message> AddMessageAsync(Message message)
+    public async Task<Message> AddMessageAsync(Message message, CancellationToken cancellationToken)
     {
         message.Sequence = await GetNextSequenceAsync(message.ConversationId, CancellationToken.None);
         
         context.Messages.Add(message);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
         return message;
     }
 
@@ -36,23 +40,27 @@ public class MessageRepository(ApplicationDbContext context) : IMessageRepositor
         return message;
     }
 
-    public async Task<IReadOnlyList<Message>> GetMessagesByConversationId(Guid conversationId)
+    public async Task<IReadOnlyList<Message>> GetMessagesByConversationId(Guid userId, Guid conversationId, CancellationToken cancellationToken)
     {
         return await context.Messages
             .AsNoTracking()
-            .Where(message => message.ConversationId == conversationId)
+            .Where(message => 
+                message.ConversationId == conversationId && message.Conversation.UserId == userId)
             .OrderBy(message => message.Sequence)
             .ThenBy(message => message.Id)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<MemoryUse>> GetMemoryUsesByResponseMessageIdAsync(long responseMessageId,
+    public async Task<IReadOnlyList<MemoryUse>> GetMemoryUsesByResponseMessageIdAsync(Guid userId, long responseMessageId,
         CancellationToken cancellationToken)
     {
         return await context.MemoryUses
             .AsNoTracking()
             .Include(memoryUse => memoryUse.Memory)
-            .Where(memoryUse => memoryUse.ResponseMessageId == responseMessageId)
+            .Where(memoryUse => 
+                memoryUse.ResponseMessageId == responseMessageId &&
+                memoryUse.Memory.UserId == userId &&
+                memoryUse.ResponseMessage.Conversation.UserId == userId)
             .OrderBy(memoryUse => memoryUse.Rank)
             .ThenBy(memoryUse => memoryUse.Id)
             .ToListAsync(cancellationToken);

@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Sonata.Server.Identity;
 using Sonata.Server.Models;
 
 namespace Sonata.Server.Data;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
 {
     public DbSet<Movement> Movements => Set<Movement>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
@@ -11,16 +14,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<SourceNote> SourceNotes => Set<SourceNote>();
     public DbSet<Memory> Memories => Set<Memory>();
     public DbSet<MemoryUse> MemoryUses => Set<MemoryUse>();
+    public DbSet<RefreshTokenRecord> RefreshTokenRecords => Set<RefreshTokenRecord>();
 
       protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Movement>().HasData(new
-        {
-            Id = Movement.HackathonId,
-            Name = "Qwen AI Hackathon",
-            StartedAt = new DateTimeOffset(
-                2026, 7, 19, 0, 0, 0, TimeSpan.Zero)
-        });
+        base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<Conversation>()
             .HasOne(conversation => conversation.Movement)
@@ -98,5 +96,62 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<MemoryUse>().ToTable("memory_uses", table =>
             table.HasCheckConstraint("CK_memory_uses_rank_positive", "rank > 0"));
+        
+        modelBuilder.Entity<Movement>()
+            .HasIndex(movement => new
+            {
+                movement.UserId,
+                movement.StartedAt
+            });
+
+        modelBuilder.Entity<Movement>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(movement => movement.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Conversation>()
+            .HasIndex(conversation => new
+            {
+                conversation.UserId,
+                conversation.CreatedAt
+            });
+
+        modelBuilder.Entity<Conversation>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(conversation => conversation.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Memory>()
+            .HasIndex(memory => new
+            {
+                memory.UserId,
+                memory.MovementId,
+                memory.LifecycleState
+            });
+
+        modelBuilder.Entity<Memory>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(memory => memory.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RefreshTokenRecord>()
+            .HasIndex(record => record.TokenHash)
+            .IsUnique();
+
+        modelBuilder.Entity<RefreshTokenRecord>()
+            .HasIndex(record => new
+            {
+                record.UserId,
+                record.FamilyId
+            });
+
+        modelBuilder.Entity<RefreshTokenRecord>()
+            .HasOne(record => record.User)
+            .WithMany()
+            .HasForeignKey(record => record.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -1,4 +1,6 @@
 ﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Sonata.Server.Data;
 using Sonata.Server.Repositories;
 using Sonata.Server.ModelProviders;
 using Sonata.Server.Models;
@@ -7,6 +9,7 @@ using Sonata.Server.Retrieval;
 namespace Sonata.Server.Conversations;
 
 public sealed class ConversationService(
+    ApplicationDbContext db,
     IConversationRepository conversationRepository,
     IMessageRepository messageRepository,
     IMemorySelector memorySelector,
@@ -20,12 +23,30 @@ public sealed class ConversationService(
         if (string.IsNullOrWhiteSpace(command.Content))
             throw new ArgumentException("Conversation content can't be empty.", nameof(command));
 
-        var conversation = await conversationRepository.GetConversationAsync(command.ConversationId)
-                      ?? await conversationRepository.AddConversationAsync(new Conversation
-                      {
-                          Id = command.ConversationId,
-                          CreatedAt = DateTimeOffset.UtcNow,
-                      });
+        var conversation =
+            await conversationRepository.GetConversationAsync(command.UserId, command.ConversationId,
+                cancellationToken);
+
+        if (conversation == null)
+        {
+            var movementId = await db.Movements
+                .AsNoTracking()
+                .Where(movement => movement.UserId == command.UserId)
+                .OrderBy(movement => movement.StartedAt)
+                .ThenBy(movement => movement.Id)
+                .Select(movement => (Guid?)movement.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (movementId == null) throw new InvalidOperationException("The authenticated user has no Movement.");
+            
+            conversation = await conversationRepository.AddConversationAsync(new Conversation
+            {
+                Id = command.ConversationId,
+                UserId = command.UserId,
+                MovementId = movementId.Value,
+                CreatedAt = DateTimeOffset.UtcNow,
+            }, cancellationToken);
+        }
 
         var userMessage = await messageRepository.AddMessageAsync(new Message
         {
@@ -33,11 +54,15 @@ public sealed class ConversationService(
             Content = command.Content,
             Role = "user",
             CreatedAt = DateTimeOffset.UtcNow,
-        });
+        }, cancellationToken);
         
-        var history = await messageRepository.GetMessagesByConversationId(conversation.Id);
+        var history = await messageRepository.GetMessagesByConversationId(command.UserId, conversation.Id, cancellationToken);
         
-        var selectedMemories = await memorySelector.SelectAsync(conversation.MovementId, MaximumMemoryCount, cancellationToken);
+        var selectedMemories = await memorySelector.SelectAsync(
+            command.UserId,
+            conversation.MovementId,
+            MaximumMemoryCount,
+            cancellationToken);
         
         var modelMessages = history.Select(message => new ModelMessage(
             message.Role,
@@ -70,7 +95,7 @@ public sealed class ConversationService(
         
         await messageRepository.AddAssistantMessageWithMemoryUsesAsync(assistantMessage, memoryUses, cancellationToken);
         
-        var persistedUses = await messageRepository.GetMemoryUsesByResponseMessageIdAsync(assistantMessage.Id, cancellationToken);
+        var persistedUses = await messageRepository.GetMemoryUsesByResponseMessageIdAsync(command.UserId, assistantMessage.Id, cancellationToken);
 
         var memoryDiff = persistedUses.Select(memoryUse => new MemoryDiffItem(
                 memoryUse.MemoryId,
